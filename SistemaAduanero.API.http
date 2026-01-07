@@ -1,0 +1,6 @@
+@SistemaAduanero.API_HostAddress = http://localhost:5207
+
+GET {{SistemaAduanero.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
