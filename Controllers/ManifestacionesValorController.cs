@@ -230,26 +230,58 @@ namespace SistemaAduanero.API.Controllers
         }
 
 
+       
         // DELETE: api/ManifestacionesValor/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteManifestacionesValor(int id)
         {
-            var manifestacionesValor = await _context.ManifestacionesValors.FindAsync(id);
-            if (manifestacionesValor == null)
+            // 1. Buscamos el registro cargando TODAS sus relaciones (Hijos)
+            // Es vital cargar los hijos para poder borrarlos explícitamente
+            var manifestacion = await _context.ManifestacionesValors
+                .Include(m => m.ManifestacionCoves)             // Hijos (COVEs)
+                .Include(m => m.ManifestacionConceptosValors)   // Hijos (Conceptos Globales)
+                .Include(m => m.ManifestacionPagos)             // Hijos (Pagos)
+                .Include(m => m.ManifestacionEdocuments)        // Hijos (Documentos adjuntos)
+                .Include(m => m.ManifestacionConsultaRfcs)      // Hijos (Consultas RFC)
+                .FirstOrDefaultAsync(m => m.ManifestacionId == id);
+
+            if (manifestacion == null)
             {
                 return NotFound();
             }
 
-            // Baja Lógica en lugar de DELETE físico (Recomendado)
-            manifestacionesValor.Activo = false;
-            _context.Entry(manifestacionesValor).State = EntityState.Modified;
+            try
+            {
+                // 2. Borrado Físico de los Hijos manualmente 
+                // (Esto es necesario porque tu DbContext tiene DeleteBehavior.ClientSetNull)
 
-            // Si prefieres borrado real, descomenta esto:
-            // _context.ManifestacionesValors.Remove(manifestacionesValor);
+                if (manifestacion.ManifestacionCoves != null && manifestacion.ManifestacionCoves.Any())
+                    _context.ManifestacionCoves.RemoveRange(manifestacion.ManifestacionCoves);
 
-            await _context.SaveChangesAsync();
+                if (manifestacion.ManifestacionConceptosValors != null && manifestacion.ManifestacionConceptosValors.Any())
+                    _context.ManifestacionConceptosValors.RemoveRange(manifestacion.ManifestacionConceptosValors);
 
-            return NoContent();
+                if (manifestacion.ManifestacionPagos != null && manifestacion.ManifestacionPagos.Any())
+                    _context.ManifestacionPagos.RemoveRange(manifestacion.ManifestacionPagos);
+
+                if (manifestacion.ManifestacionEdocuments != null && manifestacion.ManifestacionEdocuments.Any())
+                    _context.ManifestacionEdocuments.RemoveRange(manifestacion.ManifestacionEdocuments);
+
+                if (manifestacion.ManifestacionConsultaRfcs != null && manifestacion.ManifestacionConsultaRfcs.Any())
+                    _context.ManifestacionConsultaRfcs.RemoveRange(manifestacion.ManifestacionConsultaRfcs);
+
+                // 3. Finalmente, Borrado Físico del Padre
+                _context.ManifestacionesValors.Remove(manifestacion);
+
+                await _context.SaveChangesAsync();
+
+                return NoContent(); // 204 No Content (Éxito)
+            }
+            catch (Exception ex)
+            {
+                // Manejo de error por si hay alguna otra restricción en BD
+                return BadRequest($"No se pudo eliminar el expediente: {ex.Message}");
+            }
         }
 
         private bool ManifestacionesValorExists(int id)

@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using SistemaAduanero.API.Models.Catalogos;
+using System;
 using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
 
 namespace SistemaAduanero.API.Models;
 
@@ -36,6 +37,13 @@ public partial class AduanaDbContext : DbContext
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<Usuario> Usuarios { get; set; }
+    //para los catalogos
+    public virtual DbSet<CatIncoterm> CatIncoterms { get; set; }
+    public virtual DbSet<CatMetodoValoracion> CatMetodosValoracion { get; set; }
+    public virtual DbSet<CatFormaPago> CatFormasPago { get; set; }
+    public virtual DbSet<CatIncrementable> CatIncrementables { get; set; }
+    public virtual DbSet<CatDecrementable> CatDecrementables { get; set; }
+    public virtual DbSet<CatTipoFigura> CatTipoFigura { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer("Name=ConnectionStrings:DefaultConnection");
